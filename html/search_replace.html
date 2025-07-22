@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8">
+    <title>ToSearchAndReplaceList Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+    .entry-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .entry-group input {
+      flex: 1;
+    }
+    .result-list {
+      margin-top: 5px;
+      font-size: 0.9em;
+    }
+    .result-list select {
+      width: 100%;
+    }
+    #map {
+      height: 300px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+  </head>
+  <body>
+    <a href="index.html" class="back-button"><button>Zurück zur Startseite</button></a>
+    <h1>04_ToSearchAndReplaceList</h1>
+    <div id="entries"></div>
+    <button onclick="addEntry()">+ Zeile hinzufügen</button>
+    <br><br>
+    <button onclick="downloadCSV()">CSV herunterladen</button>
+    
+    <div id="map"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    let entryCount = 0;
+    let map, markers = [];
+
+    function initMap() {
+      map = L.map('map').setView([20, 0], 2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
+
+    function addEntry() {
+      const container = document.getElementById("entries");
+
+      const group = document.createElement("div");
+      group.className = "entry-group";
+      group.dataset.index = entryCount;
+
+      const ort = document.createElement("input");
+      ort.placeholder = "Ortsname";
+      ort.type = "text";
+      ort.name = `ort_${entryCount}`;
+
+      const suche = document.createElement("button");
+      suche.type = "button";
+      suche.textContent = "Ort suchen";
+      suche.onclick = () => searchGazetteer(ort, linkBox, resultDiv);
+
+      const linkBox = document.createElement("input");
+      linkBox.placeholder = "Permalink (wird automatisch eingefügt)";
+      linkBox.type = "text";
+      linkBox.name = `link_${entryCount}`;
+
+      const resultDiv = document.createElement("div");
+      resultDiv.className = "result-list";
+      resultDiv.style.marginBottom = "20px";
+
+      group.appendChild(ort);
+      group.appendChild(suche);
+      group.appendChild(linkBox);
+
+      container.appendChild(group);
+      container.appendChild(resultDiv);
+
+      entryCount++;
+    }
+
+    async function searchGazetteer(input, linkOutput, resultDiv) {
+      const query = input.value.trim();
+      if (!query) return alert("Bitte gib einen Ortsnamen ein.");
+
+      resultDiv.innerHTML = "Wird geladen...";
+      document.getElementById('map').style.display = 'block';
+      if (!map) initMap();
+      markers.forEach(m => m.remove());
+      markers = [];
+
+      try {
+        const response = await fetch(`https://gazetteer.dainst.org/search.json?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        const results = data?.result || [];
+
+        if (!results.length) {
+          resultDiv.innerHTML = "Keine Treffer gefunden.";
+          return;
+        }
+
+        const select = document.createElement("select");
+        const emptyOption = document.createElement("option");
+        emptyOption.textContent = "-- bitte auswählen --";
+        emptyOption.value = "";
+        select.appendChild(emptyOption);
+        select.onchange = () => {
+          const selectedOption = select.options[select.selectedIndex];
+          const uri = selectedOption.dataset.uri;
+          if (uri) {
+            linkOutput.value = uri;
+            document.getElementById('map').style.display = 'none';
+          }
+        };
+
+        results.forEach((res, i) => {
+          const title = res.prefName?.title || res.names?.[0]?.title || "Unbenannt";
+          const type = res.types?.[0] || ""; 
+          const uri = res.uri || `https://gazetteer.dainst.org/place/${res.gazId || res.id}`;
+
+          const option = document.createElement("option");
+          option.textContent = `${title} [${type}]`;
+          option.dataset.uri = uri;
+          select.appendChild(option);
+
+          const coords = res.prefLocation?.coordinates || res.coordinates || res.representations?.[0]?.coordinates;
+          if (Array.isArray(coords) && coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+            const marker = L.marker([coords[1], coords[0]]).addTo(map).bindPopup(`${title} [${type}]`);
+            marker.on('mouseover', function () { this.openPopup(); });
+            marker.on('mouseout', function () { this.closePopup(); });
+            markers.push(marker);
+            if (i === 0) map.setView([coords[1], coords[0]], 6);
+          }
+        });
+
+        resultDiv.innerHTML = "Ergebnisse:";
+        resultDiv.appendChild(select);
+
+      } catch (e) {
+        resultDiv.innerHTML = "Fehler bei der Suche.";
+      }
+    }
+
+    function downloadCSV() {
+      const entries = document.querySelectorAll(".entry-group");
+      let csv = "##Search##|##Replace with##\n";
+
+      entries.forEach(entry => {
+        const inputs = entry.querySelectorAll("input");
+        const ort = inputs[0]?.value.trimStart() || "";
+        const link = inputs[1]?.value.trimStart() || "";
+        csv += `${ort}|${link}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '04_ToSearchAndReplaceList.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Starte mit einer leeren Zeile
+    addEntry();
+  </script>
+  </body>
+</html>
