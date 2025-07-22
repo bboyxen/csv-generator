@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>IllustrationCreditList Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+    }
+    .back-button {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-button"><button>Zurück zur Startseite</button></a>
+  <h1>03_IllustrationCreditList</h1>
+  <form id="illustrationForm">
+    <label for="inputText">Bildunterschriften und Bildnachweis aller Abbildungen nach folgendem Schema hier einfügen: Bildnummer (Abb. # oder Fig. #), Bildunterschrift, Bildnachweis (jeweils durch einen Tab getrennt; eine Abbildung pro Zeile):</label><br>
+    <textarea id="inputText" placeholder="Abb. 1\tBeschreibung\tFoto: Mustermensch..."></textarea>
+    <label for="paths">Nur für direkte Konvertierung von Word nach JATS-XML notwendig: Pfadangaben (eine Zeile pro Bild, Reihenfolge muss der oberen Eingabe entsprechen)</label><br>
+    <textarea id="paths" placeholder="pfad/zur/datei1.jpg\npfad/zur/datei2.jpg\n..."></textarea>
+    <button type="submit">CSV herunterladen</button>
+  </form>
+
+  <script>
+    document.getElementById('illustrationForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const inputLines = document.getElementById('inputText').value.trim().split('\n');
+      const paths = document.getElementById('paths').value.trim().split('\n');
+
+      let csvContent = 'Figure number|Captions|Path of source file (for xml-Version)|Copyright/Illustration credit\n';
+
+      for (let i = 0; i < inputLines.length; i++) {
+        if (inputLines[i].trim() === '') continue;
+        const fields = inputLines[i].split('\t');
+        const figure = fields[0] ? fields[0].trimStart() : '';
+        const caption = fields[1] ? fields[1].trimStart() : '';
+        const credit = fields[2] ? fields[2].trimStart() : '';
+        const path = paths[i] ? paths[i].trimStart() : '';
+        csvContent += `${figure}|${caption}|${path}|${credit}
+`;
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '03_IllustrationCreditList.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
