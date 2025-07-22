@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>05_Ortserkennung mit Karte</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .entry-block {
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 800px;
+    }
+    .entry-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .entry-group input,
+    .entry-group select {
+      width: 30%;
+    }
+    .entry-group input.link-box {
+      width: 40%;
+    }
+    #results {
+      margin-top: 40px;
+    }
+    #modalMap {
+      display: none;
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 60%;
+      background: #fff;
+      z-index: 1000;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1001;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <a href="index.html"><button>Zurück zur Startseite</button></a>
+  <h1>05_Ortserkennung mit NER + Karte</h1>
+
+  <input type="file" id="docxInput" accept=".docx">
+  <button onclick="uploadDocx()">Analyse starten</button>
+  <button onclick="downloadCSV()">CSV herunterladen</button>
+
+  <div id="results"></div>
+
+  <div id="overlay"></div>
+  <div id="modalMap">
+    <button class="close-btn" onclick="closeMap()">✖</button>
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    let map, markers = [];
+
+    function initMap() {
+      if (!map) {
+        map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+      }
+    }
+
+    function openMap() {
+      document.getElementById('overlay').style.display = 'block';
+      document.getElementById('modalMap').style.display = 'block';
+      setTimeout(() => {
+        map.invalidateSize();
+        if (markers.length > 1) {
+          const group = L.featureGroup(markers);
+          map.fitBounds(group.getBounds().pad(0.3));
+        }
+      }, 100);
+    }
+
+    function closeMap() {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('modalMap').style.display = 'none';
+      markers.forEach(m => m.remove());
+      markers = [];
+    }
+
+    async function uploadDocx() {
+      const input = document.getElementById("docxInput");
+      const file = input.files[0];
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "<p style='margin-top: 30px;'>Wird verarbeitet...</p>";
+
+      if (!file) {
+        resultsDiv.innerHTML = "❗ Bitte wähle eine .docx-Datei aus.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("http://localhost:5000/api/analyse", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!response.ok) throw new Error("Fehler beim Serverzugriff.");
+
+        const data = await response.json();
+        if (data.length === 0) {
+          resultsDiv.innerHTML = "Keine Orte erkannt.";
+          return;
+        }
+
+        resultsDiv.innerHTML = "";
+        initMap();
+console.log("Empfangene Orte:", data);
+
+        data.forEach((entry, index) => {
+          const block = document.createElement("div");
+          block.className = "entry-block";
+
+          const group = document.createElement("div");
+          group.className = "entry-group";
+
+          const ort = document.createElement("input");
+          ort.type = "text";
+          ort.value = entry.query;
+          ort.readOnly = true;
+
+          const linkBox = document.createElement("input");
+          linkBox.className = "link-box";
+          linkBox.placeholder = "Permalink";
+          linkBox.type = "text";
+
+          const select = document.createElement("select");
+          const emptyOption = document.createElement("option");
+          emptyOption.textContent = "-- bitte auswählen --";
+          emptyOption.value = "";
+          select.appendChild(emptyOption);
+
+          // ✅ NEU: Wenn keine Ergebnisse vorhanden sind
+          if (entry.results.length === 0) {
+            const noHitOption = document.createElement("option");
+            noHitOption.textContent = "❌ Kein Treffer im Gazetteer";
+            noHitOption.disabled = true;
+            select.appendChild(noHitOption);
+          } else {
+            entry.results.forEach((res, i) => {
+              const option = document.createElement("option");
+              const coords = res.coords;
+              const title = res.prefName?.title || res.names?.[0]?.title || res.title || "Unbenannt";
+              const type = res.types?.[0] || "";
+              option.textContent = `${res.title} [${type}]`;
+              option.dataset.uri = res.uri;
+              option.dataset.lat = coords[1];
+              option.dataset.lon = coords[0];
+              select.appendChild(option);
+            });
+          }
+
+          select.onchange = () => {
+            const selected = select.selectedOptions[0];
+            if (selected.value === "") {
+              linkBox.value = "";
+              return;
+            }
+            linkBox.value = selected.dataset.uri || "";
+            closeMap();
+          };
+
+          const mapBtn = document.createElement("button");
+          mapBtn.textContent = "🗺 Karte";
+          mapBtn.type = "button";
+          mapBtn.onclick = () => {
+            markers.forEach(m => m.remove());
+            markers = [];
+            openMap();
+            Array.from(select.options).forEach((opt, i) => {
+              if (i === 0 || opt.disabled) return;
+              const lat = parseFloat(opt.dataset.lat);
+              const lon = parseFloat(opt.dataset.lon);
+              if (!isNaN(lat) && !isNaN(lon)) {
+                const marker = L.marker([lat, lon]).addTo(map).bindPopup(opt.textContent);
+                marker.on('mouseover', function () { this.openPopup(); });
+                marker.on('mouseout', function () { this.closePopup(); });
+                markers.push(marker);
+              }
+            });
+          };
+
+          group.appendChild(ort);
+          group.appendChild(select);
+          group.appendChild(mapBtn);
+          group.appendChild(linkBox);
+
+          block.appendChild(group);
+          resultsDiv.appendChild(block);
+        });
+
+      } catch (err) {
+        document.getElementById("results").innerHTML = `❌ Fehler: ${err.message}`;
+      }
+    }
+
+    function downloadCSV() {
+      const entries = document.querySelectorAll(".entry-group");
+      let csv = "##Search##|##Replace with##\n";
+
+      entries.forEach(entry => {
+        const ort = entry.querySelector("input[type='text']")?.value.trimStart() || "";
+        const link = entry.querySelectorAll("input[type='text']")[1]?.value.trimStart() || "";
+        csv += `"${ort}"|"${link}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '04_ToSearchAndReplaceList.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
