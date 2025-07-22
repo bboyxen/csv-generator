@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>CSV Generator Startseite</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    .logo {
+      width: 200px;
+      margin-bottom: 30px;
+    }
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+      margin-top: 40px;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      background-color: #005a9c;
+      color: white;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #003f6e;
+    }
+        footer {
+      margin-top: 60px;
+      font-size: 0.8em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <img src="Deutsches_Archäologisches_Institut_Logo.svg" alt="DAI Logo" class="logo">
+  <h1>CSV-Generator Selection</h1>
+  <div class="button-container">
+    <a href="metadata.html"><button>01_MetadataValueList</button></a>
+    <a href="authoryear.html"><button>02_AuthorYearList</button></a>
+    <a href="illustration.html"><button>03_IllustrationCreditList</button></a>
+    <a href="search_replace.html"><button>04_ToSearchAndReplaceList</button></a>
+    <a href="gazetteer_NER.html"><button>05_Place_Name_Extraction_via_NER [currently only via local server]</button></a>
+  </div>
+    <footer>
+    Redaktion ZWD, Version: 01.07.2025
+  </footer>
+</body>
+</html>
