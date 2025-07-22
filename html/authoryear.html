@@ -1,0 +1,61 @@
+<!-- authoryear.html -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>AuthorYearList Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+    }
+    .back-button {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-button"><button>Zurück zur Startseite</button></a>
+  <h1>02_AuthorYearList</h1>
+  <form id="authorYearForm">
+    <label for="inputText">Vollständige Literaturliste nach folgendem Schema hier einfügen: Autor+Jahr, vollständige bibliographische Angabe, Zenon-ID oder sontiger bibliographischer Identifier (jeweils durch einen Tab getrennt; eine Literaturangabe pro Zeile):</label><br>
+    <textarea id="inputText" placeholder="Müller 2020\t#Titel der Arbeit#\t#optional: Zenon ID oder sonstiger bibliogrphischer Identifier#\n..."></textarea>
+    <button type="submit">CSV herunterladen</button>
+  </form>
+
+  <script>
+    document.getElementById('authorYearForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const inputLines = document.getElementById('inputText').value.trim().split('\n');
+
+      let csvContent = 'Author/Year|Full citation|Identifier\n';
+      for (let line of inputLines) {
+        if (line.trim() === '') continue;
+        let [authorYear, citation, identifier] = line.split('\t');
+        authorYear = authorYear ? authorYear.trimStart() : '';
+        citation = citation ? citation.trimStart() : '';
+        identifier = identifier ? identifier.trimStart() : '';
+        csvContent += `${authorYear}|${citation}|${identifier}
+`;
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '02_AuthorYearList.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
