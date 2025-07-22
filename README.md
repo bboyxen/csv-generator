@@ -9,14 +9,14 @@ The tool is used for the structured recording of metadata and authority data, wh
 - Automatic CSV export
 - Leading whitespace is automatically removed from entries
 - ORCID validation via API
-- Gazetteer integration (iDAI.gazetteer API) for place validation and URI retrieval
+- Gazetteer integration (iDAI.gazetteer API) for place validation and Gazetteer-ID retrieval
 - Interactive map view to assist with place selection
 - Backend support for named entity recognition (NER) in `.docx` files (beta)
 
 ## HTML Module Overview
 
 ### 1. Metadata (with ORCID check)
-This module allows you to enter article and author metadata. The tool checks the validity of the entered ORCID iDs using the ORCID public API. The resulting CSV can be used by TagTool_WiZArd to match metadata to contributions.
+This module allows you to enter article and author metadata. The tool checks the validity of the entered ORCID iDs using the ORCID public API.
 
 ### 2. Author + Year (Literature Abbreviations and Bibliography)
 This module helps to create standardized `Author Year` citations and bibliography entries, including optional links to Zenon bibliographic IDs.
@@ -31,7 +31,7 @@ This module helps to organize figure references, including their captions and so
 - Output: A structured CSV that allows TagTool_WiZArd to insert correctly formatted image credits and captions.
 
 ### 4. ToSearchAndReplaceList (Gazetteer + Map)
-This module enables users to look up geographical names via the iDAI.gazetteer API and export place-URI mappings.
+This module enables users to look up geographical names via the iDAI.gazetteer API and export Gazetteer-IDs.
 
 - Input: Free-text place name (e.g., `Alexandria`)
 - The tool queries the API and displays all matches with types and coordinates.
