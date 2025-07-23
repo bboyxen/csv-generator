@@ -15,28 +15,44 @@ The tool is used for the structured recording of metadata and authority data, wh
 
 ## HTML Module Overview
 
-### 1. Metadata (with ORCID check)
+### 0. `index.html` – Start Page
+
+The central entry point of the application. It provides an overview of all available modules via buttons and links. It also displays the institutional logo (DAI) and footer versioning information.
+
+- Navigation to:
+  - `01_MetadataValueList` (`metadata.html`)
+  - `02_AuthorYearList` (`authoryear.html`)
+  - `03_IllustrationCreditList` (`illustration.html`)
+  - `04_ToSearchAndReplaceList` (`search_replace.html`)
+  - `05_Place_Name_Extraction_via_NER` (`gazetteer_NER.html`) – **requires local server**
+- Includes the DAI logo (`Deutsches_Archaeologisches_Institut_Logo.svg`) displayed from the same folder.
+
+### 1. MetadataValueList (metadata.html)
 This module allows you to enter article and author metadata. The tool checks the validity of the entered ORCID iDs using the ORCID public API.
 
-### 2. Author + Year (Literature Abbreviations and Bibliography)
-This module helps to create standardized `Author Year` citations and bibliography entries, including optional links to Zenon bibliographic IDs.
+### 2. AuthorYearList (authoryear.html)
+This module helps to create standardized `Author+Year` citations and bibliography entries, including optional links to Zenon bibliographic IDs.
 
 - This CSV enables TagTool_WiZArd to correctly format citation abbreviations and bibliographic references.
 - If a Zenon ID is provided, TagTool will generate a clickable link to the bibliographic entry.
 
-### 3. Illustrations / Captions
+### 3. IllustrationCreditList (illustration.html)
 This module helps to organize figure references, including their captions and source information.
 
 - Input: e.g., `Fig. 3 | "View of the excavation" | © DAI`
 - Output: A structured CSV that allows TagTool_WiZArd to insert correctly formatted image credits and captions.
 
-### 4. ToSearchAndReplaceList (Gazetteer + Map)
+### 4. ToSearchAndReplaceList (search_replace.html)
 This module enables users to look up geographical names via the iDAI.gazetteer API and export Gazetteer-IDs.
 
 - Input: Free-text place name (e.g., `Alexandria`)
 - The tool queries the API and displays all matches with types and coordinates.
 - A Leaflet map helps to visually identify the correct location.
 - Once selected, the correct iDAI.gazetteer URI is placed into the table for CSV export.
+
+### 5. Place_Name_Extraction_via_NER (gazetteer_NER.html) – requires local server (see below "Backend")
+
+This module allows users to upload .docx files, extract place names via Named Entity Recognition (NER), and match them against the iDAI.gazetteer API. A local Python server with spaCy must be running for this to work. Results are displayed with possible matches and coordinates on an interactive map.
 
 ## Backend (Flask + spaCy)
 
